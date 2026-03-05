@@ -1,35 +1,75 @@
-import { useRef, JSX } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, Environment } from "@react-three/drei";
-import * as THREE from "three";
+import { useState } from "react";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls } from "@react-three/drei";
+import { SphereDots } from "./scenes/SphereDots";
+import { SunriseFromSpace } from "./scenes/SunriseFromSpace";
 
-function Box(props: JSX.IntrinsicElements["mesh"]) {
-  const meshRef = useRef<THREE.Mesh>(null!);
+const SCENES = [
+  { id: "sphere-dots", label: "Sphere Dots" },
+  { id: "sunrise", label: "Sunrise" },
+] as const;
 
-  useFrame((_state, delta) => {
-    meshRef.current.rotation.x += delta * 0.5;
-    meshRef.current.rotation.y += delta * 0.8;
-  });
+type SceneId = (typeof SCENES)[number]["id"];
 
-  return (
-    <mesh {...props} ref={meshRef}>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="hotpink" />
-    </mesh>
-  );
-}
+const CAMERA: Record<SceneId, [number, number, number]> = {
+  "sphere-dots": [0, 0, 7],
+  "sunrise": [0, 0, 1],
+};
 
 export default function App() {
+  const [active, setActive] = useState<SceneId>("sphere-dots");
+
   return (
-    <div style={{ width: "100vw", height: "100vh" }}>
-      <Canvas camera={{ position: [0, 0, 4] }}>
-        <ambientLight intensity={0.5} />
-        <directionalLight position={[5, 5, 5]} intensity={1} />
-        <Box position={[-1.5, 0, 0]} />
-        <Box position={[1.5, 0, 0]} />
+    <div
+      style={{
+        width: "100vw",
+        height: "100vh",
+        background: "#000",
+        position: "relative",
+      }}
+    >
+      <nav style={navStyle}>
+        {SCENES.map((scene) => (
+          <button
+            key={scene.id}
+            onClick={() => setActive(scene.id)}
+            style={btnStyle(active === scene.id)}
+          >
+            {scene.label}
+          </button>
+        ))}
+      </nav>
+
+      <Canvas camera={{ position: CAMERA[active] }} gl={{ antialias: true }}>
+        {active === "sphere-dots" && <SphereDots />}
+        {active === "sunrise" && <SunriseFromSpace />}
         <OrbitControls />
-        <Environment preset="sunset" background />
       </Canvas>
     </div>
   );
+}
+
+const navStyle: React.CSSProperties = {
+  position: "absolute",
+  top: 20,
+  left: "50%",
+  transform: "translateX(-50%)",
+  zIndex: 10,
+  display: "flex",
+  gap: 8,
+};
+
+function btnStyle(active: boolean): React.CSSProperties {
+  return {
+    padding: "6px 16px",
+    background: active ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.05)",
+    border: `1px solid ${active ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.15)"}`,
+    borderRadius: 20,
+    color: active ? "#fff" : "rgba(255,255,255,0.5)",
+    fontSize: 13,
+    letterSpacing: "0.04em",
+    cursor: "pointer",
+    backdropFilter: "blur(8px)",
+    transition: "all 0.2s",
+  };
 }
